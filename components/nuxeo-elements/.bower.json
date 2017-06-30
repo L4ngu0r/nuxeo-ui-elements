@@ -26,11 +26,11 @@
     "web-component-tester": "^4.0.0"
   },
   "homepage": "https://github.com/nuxeo/nuxeo-elements",
-  "_release": "9f12d0fc55",
+  "_release": "813a342e36",
   "_resolution": {
     "type": "branch",
     "branch": "master",
-    "commit": "9f12d0fc55bde320342a81deb5cb90f5c56121a4"
+    "commit": "813a342e3624b8b75676c5f31fea5da881ff1164"
   },
   "_source": "https://github.com/nuxeo/nuxeo-elements.git",
   "_target": "master",

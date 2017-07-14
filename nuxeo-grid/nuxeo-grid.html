@@ -86,6 +86,11 @@ Example:
         }
       },
 
+      update: function() {
+        this.$.list.updateViewportBoundaries();
+        this.$.list.notifyResize();
+      },
+
       scrollToIndex: function(index) {
         this.$.list.scrollToIndex(index);
       },

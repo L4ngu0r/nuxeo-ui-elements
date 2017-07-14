@@ -97,6 +97,16 @@ limitations under the License.
             <div>[[throttle]]ms</div>
             <paper-slider value="{{throttle}}" immediate-value="{{throttle}}" min="1" max="1000"></paper-slider>
           </div>
+          <div>
+            <label>ITEM WIDTH</label>
+            <div>[[itemWidth]]</div>
+            <paper-slider pin value="{{itemWidth}}" min="10" max="500"></paper-slider>
+          </div>
+          <div>
+            <label>ITEM HEIGHT</label>
+            <div>[[itemHeight]]</div>
+            <paper-slider pin value="{{itemHeight}}" min="10" max="500"></paper-slider>
+          </div>
         </section>
 
         <section>
@@ -111,7 +121,7 @@ limitations under the License.
         <section>
           <nuxeo-grid id="grid" items="[[items]]" on-viewport-changed="viewportChanged" throttle="[[throttle]]">
             <template>
-              <div class="item">[[item.id]]</div>
+              <div class="item" style$="width: [[itemWidth]]px; height: [[itemHeight]]px">[[item.id]]</div>
             </template>
           </nuxeo-grid>
         </section>
@@ -138,6 +148,16 @@ limitations under the License.
               value: 250
             },
 
+            itemWidth: {
+              type: Number,
+              value: 256
+            },
+
+            itemHeight: {
+              type: Number,
+              value: 128
+            },
+
             updates: {
               type: Number,
               value: 0
@@ -159,11 +179,19 @@ limitations under the License.
             }
           },
 
+          observers: [
+            'update(itemWidth, itemHeight)'
+          ],
+
           ready: function () {
             for (var i = 0; i < 50000; i++) {
               this.push('items', {});
             }
             this.updateItemsRange(0, 7);
+          },
+
+          update: function() {
+            this.$.grid.update();
           },
 
           percentageToIndex: function(percentage) {

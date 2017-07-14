@@ -1,0 +1,214 @@
+<!--
+@license
+(C) Copyright Nuxeo Corp. (http://nuxeo.com/)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+  <head>
+    <title>nuxeo-grid</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../../webcomponentsjs/webcomponents-lite.js"></script>
+
+    <link rel="import" href="../../../polymer/polymer.html">
+    <link rel="import" href="../../../paper-button/paper-button.html">
+    <link rel="import" href="../../../paper-slider/paper-slider.html">
+    <link rel="import" href="../../nuxeo-grid/nuxeo-grid.html">
+  </head>
+
+  <body unresolved>
+
+    <dom-module id="nuxeo-grid-demo">
+      <template>
+
+        <style>
+          label {
+            font-family: monospace;
+            font-weight: bold;
+            display: block;
+            padding-bottom: 4px;
+          }
+          paper-button {
+            font-family: monospace;
+            background-color: #4FC3F7;
+            color: white;
+            margin: 2px;
+          }
+          section {
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin: 4px 0;
+          }
+          section > * {
+            display: inline-block;
+            min-width: 128px;
+            border: 1px solid black;
+            text-align: center;
+            padding: 4px;
+          }
+          nuxeo-grid {
+            border: 1px solid black;
+            width: 90%;
+            height: 70vh;
+          }
+          .item {
+            width: 196px;
+            height: 128px;
+            border: 1px solid red;
+            margin: 4px;
+          }
+        </style>
+
+        <section>
+          <div>
+            <label>LOADED</label>
+            <span>[[itemsLoaded]] / [[items.length]]</span>
+          </div>
+          <div>
+            <label>VISIBLE</label>
+            <span>[[countVisible(firstVisibleIndex, lastVisibleIndex)]]</span>
+          </div>
+          <div>
+            <label>RANGE</label>
+            <span>[[firstVisibleIndex]] ~ [[lastVisibleIndex]]</span>
+          </div>
+          <div>
+            <label>UPDATES</label>
+            <span>[[updates]]</span>
+          </div>
+        </section>
+
+        <section>
+          <div>
+            <label>THROTTLE</label>
+            <div>[[throttle]]ms</div>
+            <paper-slider value="{{throttle}}" immediate-value="{{throttle}}" min="1" max="1000"></paper-slider>
+          </div>
+        </section>
+
+        <section>
+          <div>
+            <label>SCROLL TO INDEX</label>
+            <template is="dom-repeat" items="[[percentages]]" as="percentage">
+              <paper-button on-tap="scrollTo">[[percentageToIndex(percentage)]]</paper-button>
+            </template>
+          </div>
+        </section>
+
+        <section>
+          <nuxeo-grid id="grid" items="[[items]]" on-viewport-changed="viewportChanged" throttle="[[throttle]]">
+            <template>
+              <div class="item">[[item.id]]</div>
+            </template>
+          </nuxeo-grid>
+        </section>
+
+      </template>
+
+      <script>
+        Polymer({
+          is: 'nuxeo-grid-demo',
+          properties: {
+            items: {
+              type: Array,
+              value: [],
+              notify: true
+            },
+
+            itemsLoaded: {
+              type: Number,
+              value: 0
+            },
+
+            throttle: {
+              type: Number,
+              value: 250
+            },
+
+            updates: {
+              type: Number,
+              value: 0
+            },
+
+            firstVisibleIndex: {
+              type: Number,
+              value: 0
+            },
+
+            lastVisibleIndex: {
+              type: Number,
+              value: 0
+            },
+
+            percentages: {
+              type: Array,
+              value: [0, 10, 25, 50, 55, 77, 80, 100]
+            }
+          },
+
+          ready: function () {
+            for (var i = 0; i < 50000; i++) {
+              this.push('items', {});
+            }
+            this.updateItemsRange(0, 7);
+          },
+
+          percentageToIndex: function(percentage) {
+            return percentage >= 100 ? this.items.length - 1 : Math.round(percentage * this.items.length * 0.01);
+          },
+
+          countVisible: function(min, max) {
+            return max - min;
+          },
+
+          scrollTo: function(e) {
+            this.$.grid.scrollToIndex(e.srcElement.textContent.trim() * 1);
+          },
+
+          viewportChanged: function(e) {
+            this.updates++;
+            this.firstVisibleIndex = e.detail.firstVisibleIndex;
+            this.lastVisibleIndex = e.detail.lastVisibleIndex;
+            this.updateItemsRange(this.firstVisibleIndex, this.lastVisibleIndex);
+          },
+
+          /**
+           * TODO: This method should load a range of documents to this.items array (using mockup values for now)
+           * @param firstIndex
+           * @param lastIndex
+           */
+          updateItemsRange: function(firstIndex, lastIndex) {
+            for (var i = firstIndex; i <= lastIndex; i++) {
+              if (lastIndex < this.items.length) {
+                if (!this.items[i].id) {
+                  var item = {
+                    id: '' + i
+                  };
+                  this.set('items.' + i, item);
+                  this.itemsLoaded++;
+                }
+              }
+            }
+          }
+
+        });
+      </script>
+    </dom-module>
+
+    <nuxeo-grid-demo></nuxeo-grid-demo>
+
+  </body>
+</html>

@@ -18,12 +18,14 @@ limitations under the License.
 <link rel="import" href="../../polymer/polymer.html">
 <link rel="import" href="../../iron-list/iron-list.html">
 
+<link rel="import" href="../nuxeo-page-provider-display-behavior.html">
+
 <!--
 A grid element with lazy loaded items.
 
 Example:
 
-    <nuxeo-grid items="[[items]]"></nuxeo-grid>
+    <nuxeo-grid nx-provider="[[provider]]"></nuxeo-grid>
 
 `nuxeo-grid`
 @group Nuxeo UI
@@ -46,29 +48,22 @@ Example:
       }
     </style>
 
-    <iron-list grid id="list" items="[[items]]" on-scroll="_onScroll"></iron-list>
+    <iron-list grid id="list" items="[[items]]" on-scroll="_update" on-iron-resize="_update"></iron-list>
 
   </template>
 
   <script>
     Polymer({
       is: 'nuxeo-grid',
+      behaviors: [Nuxeo.PageProviderDisplayBehavior],
       properties: {
 
         /**
-         * Bounded items array.
-         */
-        items: {
-          type: Array,
-          value: []
-        },
-
-        /**
-         * Throttle 'viewport-changed' events (created by 'scroll').
+         * Throttle updateItemsRange "requests".
          */
         throttle: {
           type: Number,
-          value: 250
+          value: 60
         },
 
         _templateStamped: {
@@ -86,7 +81,24 @@ Example:
         }
       },
 
-      update: function() {
+      /**
+       * Reset items array.
+       * @param max Maximum number of items
+       * @param preload Number of items to preload when initializing the array.
+       */
+      reset: function(max, preload) {
+        this.items = [];
+        if (max) {
+          for (var i = 0; i < max; i++) {
+            this.push('items', {});
+          }
+        }
+        if (preload) {
+          this.updateItems(0, preload);
+        }
+      },
+
+      notifyResize: function() {
         this.$.list.updateViewportBoundaries();
         this.$.list.notifyResize();
       },
@@ -95,14 +107,21 @@ Example:
         this.$.list.scrollToIndex(index);
       },
 
-      _onScroll: function() {
-        this.debounce('viewport-changed-debounce', function() {
-          this.fire('viewport-changed', {
-            firstVisibleIndex: this.$.list.firstVisibleIndex,
-            lastVisibleIndex: this.$.list.lastVisibleIndex
-          });
+      _update: function() {
+        this.debounce('debounce-viewport-changed', function() {
+          var first = this.$.list.firstVisibleIndex;
+          var last = this.$.list.lastVisibleIndex;
+          this.updateItems(first, last);
+          this.fire('viewport-changed', {firstVisibleIndex: first, lastVisibleIndex: last});
         }.bind(this), this.throttle > 0 ? this.throttle : 1);
       }
+
+      /**
+       * Fired when the list's viewport is changed (ex: on list's scroll or resize)
+       * @event viewport-changed
+       * @param {Object} detail.firstVisibleIndex Index of the first item currently displayed.
+       * @param {Object} detail.lastVisibleIndex Index of the last item currently displayed.
+       */
 
     });
   </script>

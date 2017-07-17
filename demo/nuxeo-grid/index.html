@@ -74,12 +74,12 @@ limitations under the License.
 
         <section>
           <div>
-            <label>LOADED</label>
-            <span>[[itemsLoaded]] / [[items.length]]</span>
+            <label>ITEMS</label>
+            <span>[[itemsCount]]</span>
           </div>
           <div>
             <label>VISIBLE</label>
-            <span>[[countVisible(firstVisibleIndex, lastVisibleIndex)]]</span>
+            <span>[[itemsVisible]]</span>
           </div>
           <div>
             <label>RANGE</label>
@@ -119,7 +119,7 @@ limitations under the License.
         </section>
 
         <section>
-          <nuxeo-grid id="grid" items="[[items]]" on-viewport-changed="viewportChanged" throttle="[[throttle]]">
+          <nuxeo-grid id="grid" throttle="[[throttle]]" on-viewport-changed="viewportChanged">
             <template>
               <div class="item" style$="width: [[itemWidth]]px; height: [[itemHeight]]px">[[item.id]]</div>
             </template>
@@ -132,35 +132,25 @@ limitations under the License.
         Polymer({
           is: 'nuxeo-grid-demo',
           properties: {
-            items: {
-              type: Array,
-              value: [],
-              notify: true
-            },
-
-            itemsLoaded: {
-              type: Number,
-              value: 0
-            },
 
             throttle: {
               type: Number,
-              value: 250
+              value: 60
             },
 
             itemWidth: {
               type: Number,
-              value: 256
+              value: 128
             },
 
             itemHeight: {
               type: Number,
-              value: 128
+              value: 64
             },
 
-            updates: {
-              type: Number,
-              value: 0
+            percentages: {
+              type: Array,
+              value: [0, 10, 25, 50, 55, 77, 80, 100]
             },
 
             firstVisibleIndex: {
@@ -173,33 +163,39 @@ limitations under the License.
               value: 0
             },
 
-            percentages: {
-              type: Array,
-              value: [0, 10, 25, 50, 55, 77, 80, 100]
+            itemsCount: {
+              type: Number,
+              value: 0
+            },
+
+            itemsVisible: {
+              type: Number,
+              value: 0
+            },
+
+            updates: {
+              type: Number,
+              value: 0
             }
           },
 
           observers: [
-            'update(itemWidth, itemHeight)'
+            'resize(itemWidth, itemHeight)'
           ],
 
-          ready: function () {
-            for (var i = 0; i < 50000; i++) {
-              this.push('items', {});
-            }
-            this.updateItemsRange(0, 7);
+          ready: function() {
+            this.$.grid.reset(50000, 40);
           },
 
-          update: function() {
-            this.$.grid.update();
+          resize: function() {
+            this.$.grid.notifyResize();
           },
 
           percentageToIndex: function(percentage) {
-            return percentage >= 100 ? this.items.length - 1 : Math.round(percentage * this.items.length * 0.01);
-          },
-
-          countVisible: function(min, max) {
-            return max - min;
+            var items = this.$.grid.items;
+            if (items && items.length > 0) {
+              return percentage >= 100 ? items.length - 1 : Math.round(percentage * items.length * 0.01);
+            }
           },
 
           scrollTo: function(e) {
@@ -207,29 +203,11 @@ limitations under the License.
           },
 
           viewportChanged: function(e) {
-            this.updates++;
+            this.itemsCount = this.$.grid.items.length;
             this.firstVisibleIndex = e.detail.firstVisibleIndex;
             this.lastVisibleIndex = e.detail.lastVisibleIndex;
-            this.updateItemsRange(this.firstVisibleIndex, this.lastVisibleIndex);
-          },
-
-          /**
-           * TODO: This method should load a range of documents to this.items array (using mockup values for now)
-           * @param firstIndex
-           * @param lastIndex
-           */
-          updateItemsRange: function(firstIndex, lastIndex) {
-            for (var i = firstIndex; i <= lastIndex; i++) {
-              if (lastIndex < this.items.length) {
-                if (!this.items[i].id) {
-                  var item = {
-                    id: '' + i
-                  };
-                  this.set('items.' + i, item);
-                  this.itemsLoaded++;
-                }
-              }
-            }
+            this.itemsVisible = (this.lastVisibleIndex - this.firstVisibleIndex) + 1;
+            this.updates++;
           }
 
         });

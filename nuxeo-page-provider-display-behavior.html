@@ -437,27 +437,6 @@ limitations under the License.
       _quickFilterChanged: function() {
         this._resetResults();
         this.nxProvider.fetch();
-      },
-
-      /**
-       * Update the selected range of items.
-       * @param first Index of the first item to load.
-       * @param last Index of the last item to load.
-       */
-      updateItems: function(first, last) {
-
-        // TODO: implement logic to load a range of items using the nxProvider (for now using mockup values)
-        for (var i = first; i <= last; i++) {
-          if (last < this.items.length) {
-            if (!this.items[i].id) {
-              var item = {
-                id: '' + i
-              };
-              this.set('items.' + i, item);
-            }
-          }
-        }
-
       }
 
     };

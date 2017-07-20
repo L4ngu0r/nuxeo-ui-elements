@@ -25,6 +25,8 @@ limitations under the License.
     <link rel="import" href="../../../polymer/polymer.html">
     <link rel="import" href="../../../paper-button/paper-button.html">
     <link rel="import" href="../../../paper-slider/paper-slider.html">
+    <link rel="import" href="../../../iron-image/iron-image.html">
+    <link rel="import" href="../../../nuxeo-elements/nuxeo-page-provider.html">
     <link rel="import" href="../../nuxeo-grid/nuxeo-grid.html">
   </head>
 
@@ -60,17 +62,44 @@ limitations under the License.
             padding: 4px;
           }
           nuxeo-grid {
-            border: 1px solid black;
             width: 90%;
             height: 70vh;
           }
           .item {
+            position: relative;
             width: 196px;
             height: 128px;
-            border: 1px solid red;
-            margin: 4px;
+            text-align: center;
+            -moz-box-shadow:    inset 0 0 1px black;
+            -webkit-box-shadow: inset 0 0 1px black;
+            box-shadow:         inset 0 0 1px black;
+            border: 1px solid white;
+          }
+          .title {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 24px 10px 8px;
+            color: white;
+            text-align: center;
+            text-shadow: -1px 0 rgba(0, 0, 0, 0.4), 0 1px rgba(0, 0, 0, 0.4), 1px 0 rgba(0, 0, 0, 0.4), 0 -1px rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.4);
+            background: -webkit-linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.4));
+            background: -o-linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.4));
+            background: -moz-linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.4));
+            background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.4));
           }
         </style>
+
+        <nuxeo-connection url="http://localhost:8080/nuxeo/"></nuxeo-connection>
+
+        <nuxeo-page-provider id="provider"
+                             query="SELECT * FROM File WHERE ecm:currentLifeCycleState != 'deleted'"
+                             sort='{"dc:title": "asc"}'
+                             page-size="40"
+                             enrichers="thumbnail">
+        </nuxeo-page-provider>
 
         <section>
           <div>
@@ -112,16 +141,21 @@ limitations under the License.
         <section>
           <div>
             <label>SCROLL TO INDEX</label>
-            <template is="dom-repeat" items="[[percentages]]" as="percentage">
-              <paper-button on-tap="scrollTo">[[percentageToIndex(percentage)]]</paper-button>
+            <template is="dom-repeat" items="[[keys]]" as="key">
+              <paper-button on-tap="scrollTo">[[key]]</paper-button>
             </template>
           </div>
         </section>
 
         <section>
-          <nuxeo-grid id="grid" throttle="[[throttle]]" on-viewport-changed="viewportChanged">
+          <nuxeo-grid id="grid" nx-provider="provider" throttle="[[throttle]]" on-viewport-changed="viewportChanged">
             <template>
-              <div class="item" style$="width: [[itemWidth]]px; height: [[itemHeight]]px">[[item.id]]</div>
+              <div class="item" style$="width: [[itemWidth]]px; height: [[itemHeight]]px;">
+                <iron-image style$="width: [[itemWidth]]px; height: [[itemHeight]]px;" sizing="cover" fade
+                            src="[[item.contextParameters.thumbnail.url]]">
+                </iron-image>
+                <div class="title" hidden$="[[!item.title]]">[[item.title]]</div>
+              </div>
             </template>
           </nuxeo-grid>
         </section>
@@ -140,17 +174,17 @@ limitations under the License.
 
             itemWidth: {
               type: Number,
-              value: 128
+              value: 256
             },
 
             itemHeight: {
               type: Number,
-              value: 64
+              value: 128
             },
 
-            percentages: {
+            keys: {
               type: Array,
-              value: [0, 10, 25, 50, 55, 77, 80, 100]
+              value: []
             },
 
             firstVisibleIndex: {
@@ -183,19 +217,8 @@ limitations under the License.
             'resize(itemWidth, itemHeight)'
           ],
 
-          ready: function() {
-            this.$.grid.reset(50000, 40);
-          },
-
           resize: function() {
             this.$.grid.notifyResize();
-          },
-
-          percentageToIndex: function(percentage) {
-            var items = this.$.grid.items;
-            if (items && items.length > 0) {
-              return percentage >= 100 ? items.length - 1 : Math.round(percentage * items.length * 0.01);
-            }
           },
 
           scrollTo: function(e) {
@@ -203,7 +226,13 @@ limitations under the License.
           },
 
           viewportChanged: function(e) {
-            this.itemsCount = this.$.grid.items.length;
+            if (this.itemsCount !== this.$.grid.items.length) {
+              this.itemsCount = this.$.grid.items.length;
+              this.keys = [];
+              [0, 25, 50, 60, 75, 90, 100].forEach(function(p) {
+                this.push('keys', p >= 100 ? this.itemsCount - 1 : Math.round(p * this.itemsCount * 0.01));
+              }.bind(this));
+            }
             this.firstVisibleIndex = e.detail.firstVisibleIndex;
             this.lastVisibleIndex = e.detail.lastVisibleIndex;
             this.itemsVisible = (this.lastVisibleIndex - this.firstVisibleIndex) + 1;

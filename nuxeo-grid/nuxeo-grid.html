@@ -55,12 +55,17 @@ Example:
   <script>
     Polymer({
       is: 'nuxeo-grid',
-      behaviors: [Nuxeo.PageProviderDisplayBehavior],
       properties: {
 
-        /**
-         * Throttle updateItemsRange "requests".
-         */
+        nxProvider: {
+          type: HTMLElement
+        },
+
+        items: {
+          type: Array,
+          value: []
+        },
+
         throttle: {
           type: Number,
           value: 60
@@ -72,6 +77,10 @@ Example:
         }
       },
 
+      observers: [
+        '_nxProviderChanged(nxProvider)'
+      ],
+
       ready: function() {
         if (!this._templateStamped) {
           this.$.list.dataHost = this.dataHost;
@@ -81,20 +90,10 @@ Example:
         }
       },
 
-      /**
-       * Reset items array.
-       * @param max Maximum number of items
-       * @param preload Number of items to preload when initializing the array.
-       */
-      reset: function(max, preload) {
+      resetItems: function(size) {
         this.items = [];
-        if (max) {
-          for (var i = 0; i < max; i++) {
-            this.push('items', {});
-          }
-        }
-        if (preload) {
-          this.updateItems(0, preload);
+        for (var i = 0; i < size; i++) {
+          this.push('items', {});
         }
       },
 
@@ -107,13 +106,48 @@ Example:
         this.$.list.scrollToIndex(index);
       },
 
+      _nxProviderChanged: function(nxProvider) {
+        if (typeof nxProvider === 'string') {
+          this.nxProvider = this.domHost ? this.domHost.$[nxProvider] :
+            Polymer.dom(this.ownerDocument).querySelector('#' + nxProvider);
+          if (this.nxProvider === null) {
+            this.nxProvider = Polymer.dom(this).parentNode.querySelector('#' + nxProvider);
+          }
+
+          this.updateItems(0, this.nxProvider.pageSize);
+        }
+      },
+
       _update: function() {
         this.debounce('debounce-viewport-changed', function() {
           var first = this.$.list.firstVisibleIndex;
           var last = this.$.list.lastVisibleIndex;
-          this.updateItems(first, last);
           this.fire('viewport-changed', {firstVisibleIndex: first, lastVisibleIndex: last});
+          this.updateItems(first, last);
         }.bind(this), this.throttle > 0 ? this.throttle : 1);
+      },
+
+      /**
+       * Update the selected range of items.
+       * @param first Index of the first item to load.
+       * @param last Index of the last item to load.
+       */
+      updateItems: function(first, last) {
+        if (this.nxProvider && (last - first) > 0) {
+          this.nxProvider.offset = first;
+          this.nxProvider.pageSize = (last - first) + 1;
+          this.nxProvider.fetch().then(function(response) {
+            if (this.items.length !== response.resultsCount) {
+              this.resetItems(response.resultsCount);
+            }
+            var entryIndex = 0;
+            for (var i = first; i <= last; i++) {
+              if (entryIndex < response.entries.length) {
+                this.set('items.' + i, response.entries[entryIndex++]);
+              }
+            }
+          }.bind(this));
+        }
       }
 
       /**
